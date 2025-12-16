@@ -4,6 +4,7 @@ import { PasswordProvider } from '../context/PasswordContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LockScreen from '../screens/LockScreen';
+import MasterPasswordScreen from '../screens/MasterPasswordScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import HomeScreen from '../screens/HomeScreen';
 import BiometricAuthScreen from '../screens/BiometricAuthScreen';
@@ -28,6 +29,13 @@ function RootNavigator({ initialRoute, onNavigateAway }) {
       }}
       initialRouteName={initialRoute}
     >
+      <Stack.Screen
+        name="MasterPassword"
+        component={MasterPasswordScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
       <Stack.Screen
         name="Lock"
         component={LockScreen}
@@ -71,8 +79,17 @@ export default function RootLayout() {
 
   const checkBiometricStatus = async () => {
     try {
+      // Primero verifica si existe contraseña maestra
+      const masterPasswordHash = await AsyncStorage.getItem('masterPasswordHash');
+      if (!masterPasswordHash) {
+        // Si no existe contraseña maestra, ir a crear una
+        setInitialRoute('MasterPassword');
+        setLoading(false);
+        return;
+      }
+
+      // Si existe contraseña maestra, verificar biometría
       const isBiometricEnabled = await AsyncStorage.getItem('biometricEnabled');
-      // Si biometría no está explícitamente habilitada, ir a Welcome
       if (isBiometricEnabled === 'true') {
         setInitialRoute('Lock');
       } else {
@@ -80,8 +97,8 @@ export default function RootLayout() {
       }
       setLoading(false);
     } catch (error) {
-      console.error('Error checking biometric status:', error);
-      setInitialRoute('Welcome');
+      console.error('Error checking status:', error);
+      setInitialRoute('MasterPassword');
       setLoading(false);
     }
   };

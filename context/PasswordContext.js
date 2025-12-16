@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { encryptPassword, decryptPassword } from '../services/encryptionService';
 
 const generateId = () => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -142,6 +143,7 @@ export const PasswordProvider = ({ children }) => {
   const [passwords, setPasswords] = useState([]);
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(true);
+  const [masterKey, setMasterKey] = useState(null);
 
   // Cargar contraseñas y categorías al abrir la app
   useEffect(() => {
@@ -153,12 +155,25 @@ export const PasswordProvider = ({ children }) => {
     try {
       const data = await AsyncStorage.getItem('passwords');
       if (data) {
-        setPasswords(JSON.parse(data));
+        const parsedPasswords = JSON.parse(data);
+        setPasswords(parsedPasswords);
       }
       setLoading(false);
     } catch (error) {
       console.error('Error cargando contraseñas:', error);
       setLoading(false);
+    }
+  };
+
+  // Función para desencriptar contraseña para visualización
+  const getDecryptedPassword = async (encryptedPassword) => {
+    if (!masterKey || !encryptedPassword) return '';
+    try {
+      const decrypted = require('crypto-js').AES.decrypt(encryptedPassword, masterKey).toString(require('crypto-js').enc.Utf8);
+      return decrypted || '';
+    } catch (error) {
+      console.error('Error desencriptando:', error);
+      return '';
     }
   };
 
@@ -191,11 +206,23 @@ export const PasswordProvider = ({ children }) => {
 
   // Agregar nueva contraseña
   const addPassword = useCallback((pageName, usuario, password, icon = '🔐', faviconUrl = null, categoryId = '1') => {
+    let encryptedPassword = password;
+    
+    if (masterKey) {
+      // Encriptación simple con base64
+      try {
+        const combined = password + ':' + masterKey;
+        encryptedPassword = btoa(combined);
+      } catch (e) {
+        encryptedPassword = password;
+      }
+    }
+    
     const newPassword = {
       id: generateId(),
       pageName,
       usuario,
-      password,
+      password: encryptedPassword,
       icon,
       faviconUrl,
       categoryId,
@@ -204,16 +231,28 @@ export const PasswordProvider = ({ children }) => {
     const newList = [...passwords, newPassword];
     setPasswords(newList);
     savePasswords(newList);
-  }, [passwords]);
+  }, [passwords, masterKey]);
 
   // Actualizar contraseña
   const updatePassword = useCallback((id, pageName, usuario, password, icon = '🔐', faviconUrl = null, categoryId = '1') => {
+    let encryptedPassword = password;
+    
+    if (masterKey) {
+      // Encriptación simple con base64
+      try {
+        const combined = password + ':' + masterKey;
+        encryptedPassword = btoa(combined);
+      } catch (e) {
+        encryptedPassword = password;
+      }
+    }
+      
     const newList = passwords.map((item) =>
-      item.id === id ? { ...item, pageName, usuario, password, icon, faviconUrl, categoryId } : item
+      item.id === id ? { ...item, pageName, usuario, password: encryptedPassword, icon, faviconUrl, categoryId } : item
     );
     setPasswords(newList);
     savePasswords(newList);
-  }, [passwords]);
+  }, [passwords, masterKey]);
 
   // Eliminar contraseña
   const deletePassword = useCallback((id) => {
@@ -253,6 +292,8 @@ export const PasswordProvider = ({ children }) => {
         passwords,
         categories,
         loading,
+        masterKey,
+        setMasterKey,
         addPassword,
         updatePassword,
         deletePassword,
@@ -262,6 +303,7 @@ export const PasswordProvider = ({ children }) => {
         loadPasswords,
         groupPasswords,
         getGroupForPassword,
+        getDecryptedPassword,
       }}
     >
       {children}

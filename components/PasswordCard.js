@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,34 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { PasswordContext } from '../context/PasswordContext';
 
 export default function PasswordCard({ password, onEdit, onDelete }) {
+  const { masterKey } = useContext(PasswordContext);
   const [showPassword, setShowPassword] = useState(false);
   const [faviconError, setFaviconError] = useState(false);
+  const [decryptedPassword, setDecryptedPassword] = useState('');
+
+  useEffect(() => {
+    decryptPasswordForDisplay();
+  }, [password.password, masterKey]);
+
+  const decryptPasswordForDisplay = async () => {
+    if (!masterKey) {
+      setDecryptedPassword(password.password);
+      return;
+    }
+    
+    try {
+      // Decodificar de base64
+      const decoded = atob(password.password);
+      const [, decrypted] = decoded.split(':');
+      setDecryptedPassword(decrypted || password.password);
+    } catch (error) {
+      console.error('Error decrypting:', error);
+      setDecryptedPassword(password.password);
+    }
+  };
 
   const copyToClipboard = (text, label) => {
     Clipboard.setString(text);
@@ -53,7 +77,7 @@ export default function PasswordCard({ password, onEdit, onDelete }) {
         <Text style={styles.label}>Contraseña:</Text>
         <View style={styles.passwordRow}>
           <Text style={styles.value}>
-            {showPassword ? password.password : '•'.repeat(password.password.length)}
+            {showPassword ? decryptedPassword : '•'.repeat(decryptedPassword.length)}
           </Text>
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
             <Ionicons
@@ -63,7 +87,7 @@ export default function PasswordCard({ password, onEdit, onDelete }) {
             />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => copyToClipboard(password.password, 'Contraseña')}
+            onPress={() => copyToClipboard(decryptedPassword, 'Contraseña')}
           >
             <Ionicons name="copy" size={16} color="#007AFF" />
           </TouchableOpacity>

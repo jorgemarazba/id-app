@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PasswordContext } from '../context/PasswordContext';
@@ -14,7 +15,7 @@ import { ThemeContext } from '../context/ThemeContext';
 import AddPasswordModal from '../components/AddPasswordModal';
 
 export default function WelcomeScreen({ navigation }) {
-  const { passwords } = useContext(PasswordContext);
+  const { passwords, groupPasswords, getGroupForPassword } = useContext(PasswordContext);
   const { theme, isDarkMode, toggleTheme } = useContext(ThemeContext);
   const [searchQuery, setSearchQuery] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
@@ -35,13 +36,28 @@ export default function WelcomeScreen({ navigation }) {
     );
   };
 
+  // Obtener servicios únicos
+  const getUniqueServices = () => {
+    const servicesMap = {};
+    passwords.forEach((password) => {
+      const group = getGroupForPassword(password.pageName);
+      if (!servicesMap[group]) {
+        servicesMap[group] = password;
+      }
+    });
+    return Object.values(servicesMap);
+  };
+
   const weakPasswords = passwords.filter((p) => p.password.length < 8).length;
-  const reusedPasswords = 0; // Placeholder
+  const uniqueServices = getUniqueServices();
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]} showsVerticalScrollIndicator={false}>
-      {/* Header con botón de tema */}
+      {/* Header con botón de tema y seguridad */}
       <View style={[styles.header, { backgroundColor: theme.cardBackground, borderBottomColor: theme.border }]}>
+        <TouchableOpacity onPress={() => navigation.navigate('BiometricAuth')} style={styles.securityButton}>
+          <Ionicons name="shield-checkmark" size={24} color={theme.primary} />
+        </TouchableOpacity>
         <Text style={[styles.appTitle, { color: theme.text }]}>🔐 Gestor de Contraseñas</Text>
         <TouchableOpacity onPress={toggleTheme} style={styles.themeButton}>
           <Ionicons
@@ -61,7 +77,10 @@ export default function WelcomeScreen({ navigation }) {
           placeholderTextColor={theme.placeholderText}
           value={searchQuery}
           onChangeText={setSearchQuery}
-          onFocus={() => navigation.navigate('Home')}
+          onFocus={() => {
+            setSearchQuery('');
+            navigation.navigate('Home');
+          }}
         />
       </View>
 
@@ -124,6 +143,27 @@ export default function WelcomeScreen({ navigation }) {
             <Text style={[styles.summaryLabel, { color: theme.textTertiary }]}>Seguras</Text>
           </View>
         </View>
+
+        {/* Servicios Guardados */}
+        {uniqueServices.length > 0 && (
+          <View style={styles.servicesSection}>
+            <Text style={[styles.servicesSectionTitle, { color: theme.text }]}>Servicios Guardados</Text>
+            <View style={styles.servicesGrid}>
+              {uniqueServices.map((password) => (
+                <View key={password.id} style={styles.serviceItem}>
+                  {password.faviconUrl ? (
+                    <Image
+                      source={{ uri: password.faviconUrl }}
+                      style={styles.serviceFavicon}
+                    />
+                  ) : (
+                    <Text style={styles.serviceEmoji}>{password.icon || '🔐'}</Text>
+                  )}
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Botón para ir a Contraseñas */}
         <TouchableOpacity
@@ -203,6 +243,9 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: '#333',
+  },
+  securityButton: {
+    padding: 8,
   },
   themeButton: {
     padding: 8,
@@ -332,12 +375,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#e0e0e0',
+    marginBottom: 16,
   },
   viewAllButtonText: {
     color: '#007AFF',
     fontSize: 14,
     fontWeight: '600',
     marginRight: 8,
+  },
+  servicesSection: {
+    marginBottom: 16,
+  },
+  servicesSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+  },
+  servicesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  serviceItem: {
+    width: '23%',
+    aspectRatio: 1,
+    borderRadius: 12,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  serviceFavicon: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+  },
+  serviceEmoji: {
+    fontSize: 32,
   },
   tipsSection: {
     marginHorizontal: 16,
@@ -383,5 +459,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     lineHeight: 16,
+  },
+  searchResultsSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  searchResultsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+    color: '#333',
+  },
+  noResultsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  noResultsText: {
+    fontSize: 14,
+    marginTop: 12,
+    color: '#999',
   },
 });

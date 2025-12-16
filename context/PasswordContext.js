@@ -129,13 +129,24 @@ const groupPasswords = (passwordsList) => {
 
 export const PasswordContext = createContext();
 
+// Categorías predeterminadas
+const DEFAULT_CATEGORIES = [
+  { id: '1', name: 'Personal', icon: '👤', color: '#FF9500' },
+  { id: '2', name: 'Trabajo', icon: '💼', color: '#007AFF' },
+  { id: '3', name: 'Redes Sociales', icon: '📱', color: '#FF2D55' },
+  { id: '4', name: 'Finanzas', icon: '💰', color: '#34C759' },
+  { id: '5', name: 'Entretenimiento', icon: '🎬', color: '#9D4EDD' },
+];
+
 export const PasswordProvider = ({ children }) => {
   const [passwords, setPasswords] = useState([]);
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(true);
 
-  // Cargar contraseñas al abrir la app
+  // Cargar contraseñas y categorías al abrir la app
   useEffect(() => {
     loadPasswords();
+    loadCategories();
   }, []);
 
   const loadPasswords = async () => {
@@ -151,6 +162,17 @@ export const PasswordProvider = ({ children }) => {
     }
   };
 
+  const loadCategories = async () => {
+    try {
+      const data = await AsyncStorage.getItem('categories');
+      if (data) {
+        setCategories(JSON.parse(data));
+      }
+    } catch (error) {
+      console.error('Error cargando categorías:', error);
+    }
+  };
+
   const savePasswords = async (data) => {
     try {
       await AsyncStorage.setItem('passwords', JSON.stringify(data));
@@ -159,8 +181,16 @@ export const PasswordProvider = ({ children }) => {
     }
   };
 
+  const saveCategories = async (data) => {
+    try {
+      await AsyncStorage.setItem('categories', JSON.stringify(data));
+    } catch (error) {
+      console.error('Error guardando categorías:', error);
+    }
+  };
+
   // Agregar nueva contraseña
-  const addPassword = useCallback((pageName, usuario, password, icon = '🔐', faviconUrl = null) => {
+  const addPassword = useCallback((pageName, usuario, password, icon = '🔐', faviconUrl = null, categoryId = '1') => {
     const newPassword = {
       id: generateId(),
       pageName,
@@ -168,6 +198,7 @@ export const PasswordProvider = ({ children }) => {
       password,
       icon,
       faviconUrl,
+      categoryId,
       createdAt: new Date().toISOString(),
     };
     const newList = [...passwords, newPassword];
@@ -176,9 +207,9 @@ export const PasswordProvider = ({ children }) => {
   }, [passwords]);
 
   // Actualizar contraseña
-  const updatePassword = useCallback((id, pageName, usuario, password, icon = '🔐', faviconUrl = null) => {
+  const updatePassword = useCallback((id, pageName, usuario, password, icon = '🔐', faviconUrl = null, categoryId = '1') => {
     const newList = passwords.map((item) =>
-      item.id === id ? { ...item, pageName, usuario, password, icon, faviconUrl } : item
+      item.id === id ? { ...item, pageName, usuario, password, icon, faviconUrl, categoryId } : item
     );
     setPasswords(newList);
     savePasswords(newList);
@@ -191,14 +222,43 @@ export const PasswordProvider = ({ children }) => {
     savePasswords(newList);
   }, [passwords]);
 
+  // Agregar categoría
+  const addCategory = useCallback((name, icon, color) => {
+    const newCategory = {
+      id: generateId(),
+      name,
+      icon,
+      color,
+    };
+    const newList = [...categories, newCategory];
+    setCategories(newList);
+    saveCategories(newList);
+  }, [categories]);
+
+  // Eliminar categoría
+  const deleteCategory = useCallback((id) => {
+    const newList = categories.filter((item) => item.id !== id);
+    setCategories(newList);
+    saveCategories(newList);
+  }, [categories]);
+
+  // Obtener categoría por ID
+  const getCategoryById = useCallback((categoryId) => {
+    return categories.find((cat) => cat.id === categoryId);
+  }, [categories]);
+
   return (
     <PasswordContext.Provider
       value={{
         passwords,
+        categories,
         loading,
         addPassword,
         updatePassword,
         deletePassword,
+        addCategory,
+        deleteCategory,
+        getCategoryById,
         loadPasswords,
         groupPasswords,
         getGroupForPassword,

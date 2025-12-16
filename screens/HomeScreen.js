@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   SectionList,
+  TextInput,
 } from 'react-native';
 import { PasswordContext } from '../context/PasswordContext';
 import { ThemeContext } from '../context/ThemeContext';
@@ -15,11 +16,12 @@ import PasswordCard from '../components/PasswordCard';
 import AddPasswordModal from '../components/AddPasswordModal';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function HomeScreen() {
-  const { passwords, loading, deletePassword, groupPasswords } = useContext(PasswordContext);
+export default function HomeScreen({ navigation }) {
+  const { passwords, loading, deletePassword, groupPasswords, getGroupForPassword } = useContext(PasswordContext);
   const { theme } = useContext(ThemeContext);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingPassword, setEditingPassword] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleDelete = (id) => {
     Alert.alert('Eliminar contraseña', '¿Estás seguro de que deseas eliminarla?', [
@@ -42,9 +44,24 @@ export default function HomeScreen() {
     setModalVisible(true);
   };
 
+  // Filtrar contraseñas según búsqueda
+  const getFilteredPasswords = () => {
+    if (!searchQuery.trim()) return passwords;
+    
+    const query = searchQuery.toLowerCase();
+    return passwords.filter((password) => {
+      const usuario = (password.usuario || '').toLowerCase();
+      const pageName = (password.pageName || '').toLowerCase();
+      const service = (getGroupForPassword(password.pageName) || '').toLowerCase();
+      
+      return usuario.includes(query) || pageName.includes(query) || service.includes(query);
+    });
+  };
+
   // Preparar datos para SectionList
   const getGroupedData = () => {
-    const grouped = groupPasswords(passwords);
+    const filtered = getFilteredPasswords();
+    const grouped = groupPasswords(filtered);
     return Object.entries(grouped).map(([group, items]) => ({
       title: group,
       data: items,
@@ -63,6 +80,27 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Header con botón de Seguridad */}
+      <View style={[styles.topBar, { backgroundColor: theme.cardBackground, borderBottomColor: theme.border }]}>
+        <TouchableOpacity onPress={() => navigation.navigate('BiometricAuth')}>
+          <Ionicons name="shield-checkmark" size={24} color={theme.primary} />
+        </TouchableOpacity>
+        <Text style={[styles.topBarTitle, { color: theme.text }]}>Mis Contraseñas</Text>
+        <View style={{ width: 24 }} />
+      </View>
+
+      {/* Barra de Búsqueda */}
+      <View style={[styles.searchContainer, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+        <Ionicons name="search" size={20} color={theme.textTertiary} style={styles.searchIcon} />
+        <TextInput
+          style={[styles.searchInput, { color: theme.text }]}
+          placeholder="Buscar por usuario, sitio o servicio"
+          placeholderTextColor={theme.placeholderText}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+
       <SectionList
         sections={groupedData}
         keyExtractor={(item) => item.id}
@@ -107,6 +145,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  topBarTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
   },
   loadingContainer: {
     flex: 1,
@@ -161,5 +213,25 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    marginVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#333',
   },
 });

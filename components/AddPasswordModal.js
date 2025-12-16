@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PasswordContext } from '../context/PasswordContext';
+import { ThemeContext } from '../context/ThemeContext';
 
 const POPULAR_ICONS = [
   '📧', '👤', '🔐', '💻', '🌐', '📱', '💳', '🎮', '📺', '🍎',
@@ -93,7 +94,10 @@ export default function AddPasswordModal({ visible, onClose, editingPassword }) 
   const [faviconUrl, setFaviconUrl] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showIconPicker, setShowIconPicker] = useState(false);
-  const { addPassword, updatePassword } = useContext(PasswordContext);
+  const [selectedCategory, setSelectedCategory] = useState('1');
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const { addPassword, updatePassword, categories } = useContext(PasswordContext);
+  const { theme } = useContext(ThemeContext);
 
   useEffect(() => {
     if (editingPassword) {
@@ -102,6 +106,7 @@ export default function AddPasswordModal({ visible, onClose, editingPassword }) 
       setPassword(editingPassword.password);
       setIcon(editingPassword.icon || '🔐');
       setFaviconUrl(editingPassword.faviconUrl || null);
+      setSelectedCategory(editingPassword.categoryId || '1');
     } else {
       resetForm();
     }
@@ -128,6 +133,7 @@ export default function AddPasswordModal({ visible, onClose, editingPassword }) 
     setFaviconUrl(null);
     setShowPassword(false);
     setShowIconPicker(false);
+    setSelectedCategory('1');
   };
 
   const handleSave = () => {
@@ -142,10 +148,10 @@ export default function AddPasswordModal({ visible, onClose, editingPassword }) 
     }
 
     if (editingPassword) {
-      updatePassword(editingPassword.id, pageName, usuario, password, icon, faviconUrl);
+      updatePassword(editingPassword.id, pageName, usuario, password, icon, faviconUrl, selectedCategory);
       Alert.alert('Éxito', 'Contraseña actualizada correctamente');
     } else {
-      addPassword(pageName, usuario, password, icon, faviconUrl);
+      addPassword(pageName, usuario, password, icon, faviconUrl, selectedCategory);
       Alert.alert('Éxito', 'Contraseña guardada correctamente');
     }
 
@@ -216,6 +222,53 @@ export default function AddPasswordModal({ visible, onClose, editingPassword }) 
                 placeholderTextColor="#999"
                 keyboardType="email-address"
               />
+            </View>
+
+            {/* Selector de Categoría */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Categoría</Text>
+              <TouchableOpacity
+                style={styles.categorySelector}
+                onPress={() => setShowCategoryPicker(!showCategoryPicker)}
+              >
+                <View style={styles.categoryDisplay}>
+                  <Text style={styles.categoryEmoji}>
+                    {categories.find(c => c.id === selectedCategory)?.icon}
+                  </Text>
+                  <Text style={styles.categoryName}>
+                    {categories.find(c => c.id === selectedCategory)?.name}
+                  </Text>
+                </View>
+                <Ionicons
+                  name={showCategoryPicker ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color="#007AFF"
+                />
+              </TouchableOpacity>
+
+              {showCategoryPicker && (
+                <View style={styles.categoryList}>
+                  {categories.map((cat) => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={[
+                        styles.categoryOption,
+                        selectedCategory === cat.id && styles.selectedCategory,
+                      ]}
+                      onPress={() => {
+                        setSelectedCategory(cat.id);
+                        setShowCategoryPicker(false);
+                      }}
+                    >
+                      <Text style={styles.categoryOptionEmoji}>{cat.icon}</Text>
+                      <Text style={styles.categoryOptionName}>{cat.name}</Text>
+                      {selectedCategory === cat.id && (
+                        <Ionicons name="checkmark" size={20} color="#007AFF" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
 
             <View style={styles.inputGroup}>
@@ -416,5 +469,57 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '600',
     fontSize: 16,
+  },
+  categorySelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: 'white',
+  },
+  categoryDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  categoryEmoji: {
+    fontSize: 24,
+  },
+  categoryName: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  categoryList: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    marginTop: 4,
+    backgroundColor: 'white',
+    maxHeight: 200,
+  },
+  categoryOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  selectedCategory: {
+    backgroundColor: '#f0f0f0',
+  },
+  categoryOptionEmoji: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  categoryOptionName: {
+    flex: 1,
+    fontSize: 14,
+    color: '#333',
   },
 });

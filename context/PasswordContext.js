@@ -9,6 +9,124 @@ const generateId = () => {
   });
 };
 
+// Mapeo de dominios a grupos
+const DOMAIN_GROUPS = {
+  'google': 'Google',
+  'gmail': 'Google',
+  'mail': 'Google',
+  'drive': 'Google',
+  'classroom': 'Google',
+  'sheets': 'Google',
+  'docs': 'Google',
+  
+  'meta': 'Meta',
+  'facebook': 'Meta',
+  'fb': 'Meta',
+  'instagram': 'Meta',
+  'ig': 'Meta',
+  'whatsapp': 'Meta',
+  
+  'twitter': 'Twitter/X',
+  'x': 'Twitter/X',
+  
+  'youtube': 'YouTube',
+  
+  'microsoft': 'Microsoft',
+  'outlook': 'Microsoft',
+  'teams': 'Microsoft',
+  'office': 'Microsoft',
+  'windows': 'Microsoft',
+  'xbox': 'Microsoft',
+  
+  'amazon': 'Amazon',
+  'aws': 'Amazon',
+  
+  'apple': 'Apple',
+  'icloud': 'Apple',
+  'itunes': 'Apple',
+  
+  'paypal': 'PayPal',
+  'ebay': 'eBay',
+  'github': 'GitHub',
+  'gitlab': 'GitLab',
+  'linkedin': 'LinkedIn',
+  'discord': 'Discord',
+  'twitch': 'Twitch',
+  'reddit': 'Reddit',
+  'pinterest': 'Pinterest',
+  'tiktok': 'TikTok',
+  'snapchat': 'Snapchat',
+  'telegram': 'Telegram',
+  
+  'spotify': 'Entretenimiento',
+  'netflix': 'Entretenimiento',
+  'hulu': 'Entretenimiento',
+  'disney': 'Entretenimiento',
+  'prime': 'Entretenimiento',
+  'hbo': 'Entretenimiento',
+  
+  'uber': 'Viajes',
+  'airbnb': 'Viajes',
+  'booking': 'Viajes',
+  'expedia': 'Viajes',
+  
+  'slack': 'Productividad',
+  'zoom': 'Productividad',
+  'skype': 'Productividad',
+  'notion': 'Productividad',
+  
+  'coinbase': 'Cripto',
+  'binance': 'Cripto',
+  'kraken': 'Cripto',
+  'crypto': 'Cripto',
+  
+  'bank': 'Finanzas',
+  'wise': 'Finanzas',
+  'revolut': 'Finanzas',
+  'stripe': 'Finanzas',
+};
+
+// Función para obtener el grupo de una contraseña
+const getGroupForPassword = (pageName) => {
+  const domain = pageName.toLowerCase().replace(/\s+/g, '');
+  
+  // Buscar en el mapeo exacto
+  if (DOMAIN_GROUPS[domain]) {
+    return DOMAIN_GROUPS[domain];
+  }
+  
+  // Buscar si alguna clave está contenida en el nombre
+  for (const [key, group] of Object.entries(DOMAIN_GROUPS)) {
+    if (domain.includes(key)) {
+      return group;
+    }
+  }
+  
+  // Si no encuentra grupo, usar "Otros"
+  return 'Otros';
+};
+
+// Función para agrupar contraseñas
+const groupPasswords = (passwordsList) => {
+  const grouped = {};
+  
+  passwordsList.forEach((password) => {
+    const group = getGroupForPassword(password.pageName);
+    if (!grouped[group]) {
+      grouped[group] = [];
+    }
+    grouped[group].push(password);
+  });
+  
+  // Ordenar grupos alfabéticamente
+  const sortedGroups = {};
+  Object.keys(grouped).sort().forEach((key) => {
+    sortedGroups[key] = grouped[key];
+  });
+  
+  return sortedGroups;
+};
+
 export const PasswordContext = createContext();
 
 export const PasswordProvider = ({ children }) => {
@@ -82,6 +200,8 @@ export const PasswordProvider = ({ children }) => {
         updatePassword,
         deletePassword,
         loadPasswords,
+        groupPasswords,
+        getGroupForPassword,
       }}
     >
       {children}

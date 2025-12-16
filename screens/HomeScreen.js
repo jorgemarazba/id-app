@@ -7,14 +7,17 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  SectionList,
 } from 'react-native';
 import { PasswordContext } from '../context/PasswordContext';
+import { ThemeContext } from '../context/ThemeContext';
 import PasswordCard from '../components/PasswordCard';
 import AddPasswordModal from '../components/AddPasswordModal';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function HomeScreen() {
-  const { passwords, loading, deletePassword } = useContext(PasswordContext);
+  const { passwords, loading, deletePassword, groupPasswords } = useContext(PasswordContext);
+  const { theme } = useContext(ThemeContext);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingPassword, setEditingPassword] = useState(null);
 
@@ -39,18 +42,29 @@ export default function HomeScreen() {
     setModalVisible(true);
   };
 
+  // Preparar datos para SectionList
+  const getGroupedData = () => {
+    const grouped = groupPasswords(passwords);
+    return Object.entries(grouped).map(([group, items]) => ({
+      title: group,
+      data: items,
+    }));
+  };
+
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
 
+  const groupedData = getGroupedData();
+
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={passwords}
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <SectionList
+        sections={groupedData}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <PasswordCard
@@ -59,11 +73,16 @@ export default function HomeScreen() {
             onDelete={handleDelete}
           />
         )}
+        renderSectionHeader={({ section: { title } }) => (
+          <View style={[styles.sectionHeader, { backgroundColor: theme.sectionHeader }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{title}</Text>
+          </View>
+        )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="lock-closed-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>No hay contraseñas guardadas</Text>
-            <Text style={styles.emptySubText}>
+            <Ionicons name="lock-closed-outline" size={64} color={theme.textTertiary} />
+            <Text style={[styles.emptyText, { color: theme.text }]}>No hay contraseñas guardadas</Text>
+            <Text style={[styles.emptySubText, { color: theme.textSecondary }]}>
               Toca el botón + para agregar tu primera contraseña
             </Text>
           </View>
@@ -71,7 +90,7 @@ export default function HomeScreen() {
         contentContainerStyle={passwords.length === 0 && styles.emptyListContent}
       />
 
-      <TouchableOpacity style={styles.floatingButton} onPress={handleAddNew}>
+      <TouchableOpacity style={[styles.floatingButton, { backgroundColor: theme.primary }]} onPress={handleAddNew}>
         <Ionicons name="add" size={32} color="white" />
       </TouchableOpacity>
 
@@ -93,6 +112,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  sectionHeader: {
+    backgroundColor: '#e8e8e8',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
   },
   emptyContainer: {
     alignItems: 'center',

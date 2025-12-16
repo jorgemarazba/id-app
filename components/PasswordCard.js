@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function PasswordCard({ password, onEdit, onDelete }) {
   const [showPassword, setShowPassword] = useState(false);
+  const [faviconError, setFaviconError] = useState(false);
 
   const copyToClipboard = (text, label) => {
     Clipboard.setString(text);
@@ -22,11 +23,11 @@ export default function PasswordCard({ password, onEdit, onDelete }) {
     <View style={styles.card}>
       <View style={styles.header}>
         <View style={styles.iconContainer}>
-          {password.faviconUrl ? (
+          {password.faviconUrl && !faviconError ? (
             <Image
               source={{ uri: password.faviconUrl }}
               style={styles.faviconImage}
-              onError={() => <Text style={styles.fallbackIcon}>{password.icon || '🔐'}</Text>}
+              onError={() => setFaviconError(true)}
             />
           ) : (
             <Text style={styles.icon}>{password.icon || '🔐'}</Text>
@@ -109,18 +110,20 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   iconContainer: {
-    width: 40,
-    height: 40,
+    width: 48,
+    height: 48,
     borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   faviconImage: {
-    width: 32,
-    height: 32,
-    borderRadius: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 6,
   },
   icon: {
     fontSize: 32,
